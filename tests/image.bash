@@ -19,17 +19,25 @@ imageFile() {
 
 if [[ $1 == "setup" ]]; then
   if ! [[ -f $3 ]]; then
-    curl -s -L "https://downloads.raspberrypi.org/raspios_lite_armhf_latest" -o "$2"
-    curl -s "$(curl "https://downloads.raspberrypi.org/raspios_lite_armhf_latest" -s -L -I  -o /dev/null -w '%{url_effective}')".sig -o "${2}.sig"
-    gpg -q --keyserver keyserver.ubuntu.com --recv-key 0x8738CD6B956F460C
-    gpg -q --trust-model always --verify "${2}.sig" "$2"
-    xz "$2" -d
+    if [[ "$3" == "alpine-rpi-3.20.1-armhf.img" ]]; then
+      curl -s -L "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/armhf/alpine-rpi-3.20.1-armhf.img.gz" -o "$2"
+      curl -s https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/armhf/alpine-rpi-3.20.1-armhf.img.gz.asc -o "${2}.asc"
+      gpg -q --keyserver keyserver.ubuntu.com --recv-key 0x0482D84022F52DF1C4E7CD43293ACD0907D9495A
+      gpg -q --trust-model always --verify "${2}.asc" "$2"
+      gzip "$2" -d
+    else
+      curl -s -L "https://downloads.raspberrypi.org/raspios_lite_armhf_latest" -o "$2"
+      curl -s "$(curl "https://downloads.raspberrypi.org/raspios_lite_armhf_latest" -s -L -I  -o /dev/null -w '%{url_effective}')".sig -o "${2}.sig"
+      gpg -q --keyserver keyserver.ubuntu.com --recv-key 0x8738CD6B956F460C
+      gpg -q --trust-model always --verify "${2}.sig" "$2"
+      xz "$2" -d
+    fi
   fi
   qemu-img resize -f raw "$3" 4G
   echo ", +" | sfdisk -N 2 "$3"
   imageFile "mount" "$3"
-  rsync -avr --exclude="*.img" --exclude="*.sig" --exclude="tests/fs" --exclude="tests/dtb" --exclude="tests/kernel" ./ tests/fs/opt/zram
-  systemd-nspawn --directory="tests/fs" /opt/zram/tests/install-packages.bash
+  rsync -avr --exclude="*.img" --exclude="*.sig" --exclude="*.asc" --exclude="tests/fs" --exclude="tests/dtb" --exclude="tests/kernel" ./ tests/fs/opt/zram
+  [[ "$3" == "alpine-rpi-3.20.1-armhf.img" ]] || systemd-nspawn --directory="tests/fs" /opt/zram/tests/install-packages.bash
   echo "set enable-bracketed-paste off" >> tests/fs/etc/inputrc  # Prevents weird character output
   cp tests/fs/boot/kernel* tests/kernel
   # Compile a customized DTB
