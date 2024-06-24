@@ -68,7 +68,7 @@ jobs:
            sudo apt-get install --yes gnupg xz-utils expect systemd-container qemu-user-static qemu-utils qemu-system-arm libfdt-dev
            echo "imagegz=alpine-rpi-3.20.1-armhf.img.gz" >> $GITHUB_OUTPUT
            echo "image=alpine-rpi-3.20.1-armhf.img" >> $GITHUB_OUTPUT
-       - name: Cache Raspberry Pi OS 32bit image
+       - name: Cache Alpine 32bit image
          uses: actions/cache@v4
          with:
            path: ${{ steps.setup.outputs.image }}

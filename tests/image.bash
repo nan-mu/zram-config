@@ -6,12 +6,16 @@ imageFile() {
   if [[ $1 == "mount" ]]; then
     loopPrefix="$(kpartx -asv "$2" | grep -oE "loop([0-9]+)" | head -n 1)"
 
-    mkdir -p tests/{fs,kernel,dtb}
-    mount -o rw -t ext4 "/dev/mapper/${loopPrefix}p2" "tests/fs"
-    mount -o rw -t vfat "/dev/mapper/${loopPrefix}p1" "tests/fs/boot"
+    mkdir -p tests/{fs,kernel}
+    if [[ "$2" == "alpine-rpi-3.20.1-armhf.img" ]]; then
+      mount -o rw -t vfat "/dev/mapper/${loopPrefix}p1" "tests/fs"
+    else
+      mount -o rw -t ext4 "/dev/mapper/${loopPrefix}p2" "tests/fs"
+      mount -o rw -t vfat "/dev/mapper/${loopPrefix}p1" "tests/fs/boot"
+    fi
   elif [[ $1 == "umount" ]]; then
     sync
-    umount tests/fs/boot
+    [[ "$2" == "alpine-rpi-3.20.1-armhf.img" ]] || umount tests/fs/boot
     umount tests/fs
     kpartx -d "$2"
   fi
@@ -34,9 +38,13 @@ if [[ $1 == "setup" ]]; then
     fi
   fi
   qemu-img resize -f raw "$3" 4G
-  echo ", +" | sfdisk -N 2 "$3"
+  if [[ "$3" == "alpine-rpi-3.20.1-armhf.img" ]]; then
+    echo ", +" | sfdisk -N 1 "$3"
+  else 
+    echo ", +" | sfdisk -N 2 "$3"
+  fi
   imageFile "mount" "$3"
-  rsync -avr --exclude="*.img" --exclude="*.sig" --exclude="*.asc" --exclude="tests/fs" --exclude="tests/dtb" --exclude="tests/kernel" ./ tests/fs/opt/zram
+  rsync -avr --exclude="*.img" --exclude="*.sig" --exclude="*.asc" --exclude="tests/fs" --exclude="*.dtb" --exclude="tests/kernel" ./ tests/fs/opt/zram
   [[ "$3" == "alpine-rpi-3.20.1-armhf.img" ]] || systemd-nspawn --directory="tests/fs" /opt/zram/tests/install-packages.bash
   echo "set enable-bracketed-paste off" >> tests/fs/etc/inputrc  # Prevents weird character output
   cp tests/fs/boot/kernel* tests/kernel
