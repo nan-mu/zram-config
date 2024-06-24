@@ -4,7 +4,8 @@ imageFile() {
   local loopPrefix
 
   if [[ $1 == "mount" ]]; then
-    loopPrefix="$(kpartx -asv "$2" | grep -oE "loop([0-9]+)" | head -n 1)"
+    #loopPrefix="$(kpartx -asv "$2" | grep -oE "loop([0-9]+)" | head -n 1)"
+    kpartx -asv "$2"
 
     mkdir -p tests/{fs,kernel}
     if [[ "$2" == "alpine-rpi-3.20.1-armhf.img" ]]; then
