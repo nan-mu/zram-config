@@ -78,12 +78,12 @@ jobs:
          shell: bash
        - name: Run tests
          run: |
-           cp "${{ steps.setup.outputs.image }}" raspios.img
+           cp "${{ steps.setup.outputs.image }}" alpine.img
            sudo expect ./tests/run.exp
          shell: bash
        - name: Copy logs
          if: always()
-         run: sudo ./tests/image.bash "copy-logs" "raspios.img"
+         run: sudo ./tests/image.bash "copy-logs" "alpine.img"
        - name: Upload logs
          if: always()
          uses: actions/upload-artifact@v4

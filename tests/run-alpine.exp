@@ -1,0 +1,47 @@
+#!/usr/bin/expect -f
+
+set retval 0
+set timeout -1
+set loginUser "root"
+
+spawn qemu-system-aarch64 -machine "raspi3b" -cpu arm1176 -m 1G -drive "format=raw,file=alpine.img" -dtb "./custom.dtb" -kernel "./tests/kernel/vmlinuz-rpi" -append "loglevel=0 quiet console=ttyAMA0,115200 fsck.repair=yes rootwait init=/sbin/init" -nographic -serial mon:stdio
+
+# Login process
+expect {
+  "localhost login: " {
+    send "$loginUser\r"
+    exp_continue
+  }
+  "localhost:~# " {
+    send "/opt/zram/install.bash\r"
+  }
+  "Login incorrect" {
+    exit 1
+  }
+}
+
+# Run tests
+expect "localhost:~# "
+send "/opt/zram/tests/test-zram-devices.bash\r"
+expect {
+  -re "Test failed:.*$" {
+    set retval 1
+    exp_continue
+  }
+  "localhost:~# " {
+    send "/opt/zram/uninstall.bash\r"
+  }
+}
+expect "localhost:~# "
+send "/opt/zram/tests/test-zram-devices.bash removal\r"
+expect {
+  -re "Test failed:.*$" {
+    set retval 1
+    exp_continue
+  }
+  "localhost:~# " {
+    send "poweroff\r"
+  }
+}
+
+exit $retval

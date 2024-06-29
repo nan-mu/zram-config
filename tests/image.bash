@@ -4,8 +4,7 @@ imageFile() {
   local loopPrefix
 
   if [[ $1 == "mount" ]]; then
-    #loopPrefix="$(kpartx -asv "$2" | grep -oE "loop([0-9]+)" | head -n 1)"
-    kpartx -asv "$2"
+    loopPrefix="$(kpartx -asv "$2" | grep -oE "loop([0-9]+)" | head -n 1)"
 
     mkdir -p tests/{fs,kernel}
     if [[ "$2" == "alpine-rpi-3.20.1-armhf.img" ]]; then
@@ -45,10 +44,17 @@ if [[ $1 == "setup" ]]; then
     echo ", +" | sfdisk -N 2 "$3"
   fi
   imageFile "mount" "$3"
+  [[ -d tests/fs/opt ]] || mkdir -p tests/fs/opt
   rsync -avr --exclude="*.img" --exclude="*.sig" --exclude="*.asc" --exclude="tests/fs" --exclude="*.dtb" --exclude="tests/kernel" ./ tests/fs/opt/zram
-  [[ "$3" == "alpine-rpi-3.20.1-armhf.img" ]] || systemd-nspawn --directory="tests/fs" /opt/zram/tests/install-packages.bash
-  echo "set enable-bracketed-paste off" >> tests/fs/etc/inputrc  # Prevents weird character output
-  cp tests/fs/boot/kernel* tests/kernel
+  if [[ "$3" != "alpine-rpi-3.20.1-armhf.img" ]]; then 
+    systemd-nspawn --directory="tests/fs" /opt/zram/tests/install-packages.bash
+ q   echo "set enable-bracketed-paste off" >> tests/fs/etc/inputrc  # Prevents weird character output
+    cp tests/fs/boot/kernel* tests/kernel
+  else
+    cp tests/fs/boot/vmlinuz-rpi /tests/kernel
+    curl -s -L "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/armhf/bash-5.2.26-r0.apk" -o "tests/fs/opt/bash-5.2.26-r0.apk" 
+    curl -s -L "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/armhf/gcc-13.2.1_git20240309-r0.apk" -o "tests/fs/opt/gcc-13.2.1_git20240309-r0.apk" 
+  fi
   # Compile a customized DTB
   git clone https://github.com/raspberrypi/utils.git
   cmake utils/dtmerge
