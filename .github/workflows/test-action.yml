@@ -65,7 +65,10 @@ jobs:
            sudo -E bash -c set
            sudo add-apt-repository ppa:canonical-server/server-backports
            sudo apt-get update
-           sudo apt-get install --yes gnupg xz-utils expect systemd-container qemu-user-static qemu-utils qemu-system-arm libfdt-dev
+           sudo apt-get install --yes gnupg xz-utils expect systemd-container qemu-user-static qemu-utils qemu-system-arm bridge-utils libfdt-dev
+           sudo brctl addbr br0
+           sudo brctl addif br0 eth0
+           sudo ifup br0
            echo "imagegz=alpine-rpi-3.20.1-armhf.img.gz" >> $GITHUB_OUTPUT
            echo "image=alpine-rpi-3.20.1-armhf.img" >> $GITHUB_OUTPUT
        - name: Cache Alpine 32bit image
